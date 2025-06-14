@@ -28,14 +28,14 @@ function Plant2D({ plant, isSelected, onClick }) {
       }}
       onClick={() => onClick(plant)}
     >
-      <div className="h-12 w-12 rounded-full" style={{ backgroundColor: plant.color }}>
+      <div className="h-12 w-12 rounded-full border-2 border-green-500/30" style={{ backgroundColor: plant.color }}>
         <div className="flex h-full w-full items-center justify-center text-white font-bold">
           {plant.type.charAt(0).toUpperCase()}
         </div>
       </div>
 
       {isSelected && (
-        <div className="absolute left-1/2 top-full mt-2 w-40 -translate-x-1/2 rounded-md bg-black/80 p-2">
+        <div className="absolute left-1/2 top-full mt-2 w-40 -translate-x-1/2 rounded-md bg-black/80 p-2 border border-green-500/30">
           <div className="text-xs text-white mb-1 text-center">
             {plant.owner || username}'s {plantData?.name || plant.type}
           </div>
@@ -90,87 +90,108 @@ export default function GardenSceneSimplified({ selectedPlantType, onSelectPlant
     if (!isMounted) return
 
     const growthInterval = setInterval(() => {
-      updatePlantGrowth()
-    }, 5000) // Check growth every 5 seconds
+      try {
+        updatePlantGrowth()
+      } catch (error) {
+        console.error("Error updating plant growth:", error)
+      }
+    }, 5000)
 
     return () => clearInterval(growthInterval)
   }, [updatePlantGrowth, isMounted])
 
   const handleGardenClick = (e) => {
-    if (!localSelectedPlantType) return
+    try {
+      if (!localSelectedPlantType) return
 
-    // Get click position relative to the garden container
-    const rect = e.currentTarget.getBoundingClientRect()
-    const x = ((e.clientX - rect.left) / rect.width) * 100
-    const y = ((e.clientY - rect.top) / rect.height) * 100
+      // Get click position relative to the garden container
+      const rect = e.currentTarget.getBoundingClientRect()
+      const x = ((e.clientX - rect.left) / rect.width) * 100
+      const y = ((e.clientY - rect.top) / rect.height) * 100
 
-    // Convert to garden coordinates (from percentage to -15 to 15 range)
-    const gardenX = (x / 100) * 30 - 15
-    const gardenZ = (y / 100) * 30 - 15
+      // Convert to garden coordinates (from percentage to -15 to 15 range)
+      const gardenX = (x / 100) * 30 - 15
+      const gardenZ = (y / 100) * 30 - 15
 
-    // Check if too close to another plant
-    const tooClose = plants.some((plant) => {
-      const dx = plant.position[0] - gardenX
-      const dz = plant.position[2] - gardenZ
-      return Math.sqrt(dx * dx + dz * dz) < 1.5
-    })
+      // Check if too close to another plant
+      const tooClose = plants.some((plant) => {
+        const dx = plant.position[0] - gardenX
+        const dz = plant.position[2] - gardenZ
+        return Math.sqrt(dx * dx + dz * dz) < 1.5
+      })
 
-    if (tooClose) {
+      if (tooClose) {
+        toast({
+          title: "Too close",
+          description: "Plants need more space between them",
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Get color based on plant type
+      let color = "#4caf50"
+      const plantData = getPlantData(localSelectedPlantType)
+      if (plantData) {
+        color = plantData.color
+      }
+
+      addPlant(localSelectedPlantType, [gardenX, 0.05, gardenZ], color, plantRotation)
+
       toast({
-        title: "Too close",
-        description: "Plants need more space between them",
+        title: "Plant added",
+        description: `Added ${localSelectedPlantType} to your garden`,
+      })
+    } catch (error) {
+      console.error("Error adding plant:", error)
+      toast({
+        title: "Error",
+        description: "Failed to add plant. Please try again.",
         variant: "destructive",
       })
-      return
     }
-
-    // Get color based on plant type
-    let color = "#4caf50"
-    const plantData = getPlantData(localSelectedPlantType)
-    if (plantData) {
-      color = plantData.color
-    }
-
-    addPlant(localSelectedPlantType, [gardenX, 0.05, gardenZ], color, plantRotation)
-
-    toast({
-      title: "Plant added",
-      description: `Added ${localSelectedPlantType} to your garden`,
-    })
   }
 
   const handleMouseMove = (e) => {
-    if (!localSelectedPlantType) return
+    try {
+      if (!localSelectedPlantType) return
 
-    // Get mouse position relative to the garden container
-    const rect = e.currentTarget.getBoundingClientRect()
-    const x = ((e.clientX - rect.left) / rect.width) * 100
-    const y = ((e.clientY - rect.top) / rect.height) * 100
+      // Get mouse position relative to the garden container
+      const rect = e.currentTarget.getBoundingClientRect()
+      const x = ((e.clientX - rect.left) / rect.width) * 100
+      const y = ((e.clientY - rect.top) / rect.height) * 100
 
-    setPlacementPosition({ x, y })
+      setPlacementPosition({ x, y })
 
-    // Convert to garden coordinates (from percentage to -15 to 15 range)
-    const gardenX = (x / 100) * 30 - 15
-    const gardenZ = (y / 100) * 30 - 15
+      // Convert to garden coordinates (from percentage to -15 to 15 range)
+      const gardenX = (x / 100) * 30 - 15
+      const gardenZ = (y / 100) * 30 - 15
 
-    // Check if too close to another plant
-    const tooClose = plants.some((plant) => {
-      const dx = plant.position[0] - gardenX
-      const dz = plant.position[2] - gardenZ
-      return Math.sqrt(dx * dx + dz * dz) < 1.5
-    })
+      // Check if too close to another plant
+      const tooClose = plants.some((plant) => {
+        const dx = plant.position[0] - gardenX
+        const dz = plant.position[2] - gardenZ
+        return Math.sqrt(dx * dx + dz * dz) < 1.5
+      })
 
-    setIsValidPlacement(!tooClose)
+      setIsValidPlacement(!tooClose)
+    } catch (error) {
+      console.error("Error tracking mouse:", error)
+    }
   }
 
   const rotatePlant = (direction) => {
-    setPlantRotation((prev) => {
-      if (direction === "clockwise") {
-        return (prev + Math.PI / 8) % (Math.PI * 2)
-      } else {
-        return (prev - Math.PI / 8 + Math.PI * 2) % (Math.PI * 2)
-      }
-    })
+    try {
+      setPlantRotation((prev) => {
+        if (direction === "clockwise") {
+          return (prev + Math.PI / 8) % (Math.PI * 2)
+        } else {
+          return (prev - Math.PI / 8 + Math.PI * 2) % (Math.PI * 2)
+        }
+      })
+    } catch (error) {
+      console.error("Error rotating plant:", error)
+    }
   }
 
   // Don't render anything during SSR
