@@ -10,8 +10,6 @@ const nextConfig = {
   transpilePackages: [
     '@react-three/fiber', 
     '@react-three/drei', 
-    '@react-three/postprocessing',
-    'lucide-react',
     'three',
     'framer-motion',
     'zustand'
@@ -27,16 +25,18 @@ const nextConfig = {
     unoptimized: true,
   },
   experimental: {
-    esmExternals: 'loose',
+    esmExternals: false,
   },
-  // Fix for production builds
-  swcMinify: true,
+  swcMinify: false, // Disable to avoid eval issues
   compiler: {
-    removeConsole: process.env.NODE_ENV === 'production' ? {
-      exclude: ['error', 'warn'],
-    } : false,
+    removeConsole: false, // Keep console for debugging
   },
   webpack: (config, { isServer, dev }) => {
+    // Disable eval-based source maps completely
+    if (!isServer) {
+      config.devtool = false;
+    }
+    
     // Add support for 3D model files
     config.module.rules.push({
       test: /\.(glb|gltf)$/,
@@ -55,7 +55,6 @@ const nextConfig = {
     // Better fallbacks for client-side
     if (!isServer) {
       config.resolve.fallback = {
-        ...config.resolve.fallback,
         fs: false,
         path: false,
         os: false,
@@ -71,7 +70,14 @@ const nextConfig = {
       };
     }
     
-    // Fix for framer-motion and other modules
+    // Disable optimization that might use eval
+    config.optimization = {
+      ...config.optimization,
+      minimize: false, // Disable minification to avoid eval
+      splitChunks: false, // Disable code splitting to avoid eval
+    };
+    
+    // Ensure no eval is used anywhere
     config.module.rules.push({
       test: /\.m?js$/,
       type: 'javascript/auto',
@@ -80,27 +86,9 @@ const nextConfig = {
       },
     });
     
-    // Simple optimization to prevent undefined errors
-    if (!dev) {
-      config.optimization = {
-        ...config.optimization,
-        minimize: true,
-        splitChunks: {
-          chunks: 'all',
-          cacheGroups: {
-            vendor: {
-              test: /[\\/]node_modules[\\/]/,
-              name: 'vendors',
-              chunks: 'all',
-            },
-          },
-        },
-      };
-    }
-    
     return config;
   },
-  // Relaxed CSP that allows eval
+  // Strict CSP with NO eval
   async headers() {
     return [
       {
@@ -108,7 +96,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: data:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' blob: data: https:; worker-src 'self' blob:; object-src 'none';",
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' blob: data:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' blob: data: https:; worker-src 'self' blob:; object-src 'none';",
           },
         ],
       },
