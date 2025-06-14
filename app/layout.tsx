@@ -19,11 +19,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Updated CSP meta tag to allow unsafe-eval for Three.js and framer-motion */}
-        <meta
-          httpEquiv="Content-Security-Policy"
-          content="default-src 'self' blob: data:; script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: data:; style-src 'self' 'unsafe-inline' blob: data:; img-src 'self' data: blob: https: http:; font-src 'self' data: blob:; connect-src 'self' blob: data: https: wss: ws:; worker-src 'self' blob: data:; child-src 'self' blob: data:; frame-src 'self' blob: data:; media-src 'self' blob: data:; object-src 'none';"
-        />
+        {/* Remove restrictive CSP - let the app work first */}
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
       <body className={`${GeistSans.variable} ${GeistMono.variable} font-sans antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
