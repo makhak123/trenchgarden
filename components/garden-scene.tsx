@@ -14,6 +14,9 @@ import { getPlantData } from "@/lib/plant-data"
 import { CustomErrorBoundary } from "./custom-error-boundary"
 import EnhancedUI from "./enhanced-ui"
 
+// Add imports at the top
+import { safeGet, safeCall, setupGlobalErrorHandler, safeSet } from "@/lib/safe-access"
+
 // Fence post component
 function FencePost({ position }) {
   return (
@@ -627,6 +630,10 @@ export default function GardenScene({ selectedPlantType, onError, onSelectPlant 
 
   useEffect(() => {
     setIsMounted(true)
+
+    // Setup global error handling
+    setupGlobalErrorHandler()
+
     return () => setIsMounted(false)
   }, [])
 
@@ -687,6 +694,93 @@ export default function GardenScene({ selectedPlantType, onError, onSelectPlant 
     )
   }
 
+  // Safe Canvas creation with error boundaries
+  const createSafeCanvas = () => {
+    try {
+      return (
+        <Canvas
+          key={`garden-canvas-${retryCount}`}
+          shadows
+          camera={{ position: [0, 8, 15], fov: 60 }}
+          gl={{
+            antialias: false,
+            powerPreference: "default",
+            alpha: false,
+            stencil: false,
+            depth: true,
+            preserveDrawingBuffer: false,
+            failIfMajorPerformanceCaveat: false,
+          }}
+          dpr={1}
+          onCreated={(state) => {
+            try {
+              // Safe state access
+              const gl = safeGet(state, "gl")
+              const domElement = safeGet(gl, "domElement")
+
+              if (gl && domElement) {
+                // Safely set properties
+                safeSet(gl, "logarithmicDepthBuffer", false)
+
+                // Safe event listener setup
+                const handleContextLost = (event) => {
+                  try {
+                    event.preventDefault()
+                    console.warn("WebGL context lost - attempting recovery")
+                    setContextLost(true)
+                  } catch (error) {
+                    console.error("Error handling context lost:", error)
+                  }
+                }
+
+                const handleContextRestored = () => {
+                  try {
+                    console.log("WebGL context restored")
+                    setContextLost(false)
+                  } catch (error) {
+                    console.error("Error handling context restored:", error)
+                  }
+                }
+
+                // Safe event listener addition
+                safeCall(domElement.removeEventListener?.bind(domElement), "webglcontextlost", handleContextLost)
+                safeCall(
+                  domElement.removeEventListener?.bind(domElement),
+                  "webglcontextrestored",
+                  handleContextRestored,
+                )
+                safeCall(domElement.addEventListener?.bind(domElement), "webglcontextlost", handleContextLost, false)
+                safeCall(
+                  domElement.addEventListener?.bind(domElement),
+                  "webglcontextrestored",
+                  handleContextRestored,
+                  false,
+                )
+              }
+            } catch (error) {
+              console.error("Error in Canvas onCreated:", error)
+              setContextLost(true)
+            }
+          }}
+          onError={(error) => {
+            console.error("Canvas error:", error)
+            setContextLost(true)
+          }}
+        >
+          <GardenSceneContent
+            selectedPlantType={selectedPlantType}
+            plantRotation={plantRotation}
+            onSelectPlant={onSelectPlant}
+          />
+        </Canvas>
+      )
+    } catch (error) {
+      console.error("Error creating Canvas:", error)
+      setContextLost(true)
+      return null
+    }
+  }
+
   return (
     <div className="relative h-full w-full">
       <CustomErrorBoundary
@@ -712,80 +806,7 @@ export default function GardenScene({ selectedPlantType, onError, onSelectPlant 
             </div>
           }
         >
-          <Canvas
-            key={`garden-canvas-${retryCount}`} // Force remount on retry
-            shadows
-            camera={{ position: [0, 8, 15], fov: 60 }}
-            gl={{
-              antialias: false, // Disable for better compatibility
-              powerPreference: "default", // Use default instead of high-performance
-              alpha: false,
-              stencil: false,
-              depth: true,
-              preserveDrawingBuffer: false, // Better memory management
-              failIfMajorPerformanceCaveat: false, // Don't fail on performance issues
-            }}
-            dpr={1} // Fixed DPR for consistency
-            onCreated={(state) => {
-              try {
-                if (state?.gl && state.gl.domElement) {
-                  // Disable problematic features
-                  state.gl.logarithmicDepthBuffer = false
-
-                  // Set conservative limits
-                  const gl = state.gl
-                  if (gl.getParameter) {
-                    const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE)
-                    const maxRenderbufferSize = gl.getParameter(gl.MAX_RENDERBUFFER_SIZE)
-                    console.log(`WebGL limits: Texture=${maxTextureSize}, Renderbuffer=${maxRenderbufferSize}`)
-                  }
-
-                  const canvas = state.gl.domElement
-                  if (canvas && typeof canvas.addEventListener === "function") {
-                    const handleContextLost = (event) => {
-                      try {
-                        event.preventDefault()
-                        console.warn("WebGL context lost - attempting recovery")
-                        setContextLost(true)
-                      } catch (error) {
-                        console.error("Error handling context lost:", error)
-                      }
-                    }
-
-                    const handleContextRestored = () => {
-                      try {
-                        console.log("WebGL context restored")
-                        setContextLost(false)
-                      } catch (error) {
-                        console.error("Error handling context restored:", error)
-                      }
-                    }
-
-                    // Remove existing listeners first
-                    canvas.removeEventListener("webglcontextlost", handleContextLost)
-                    canvas.removeEventListener("webglcontextrestored", handleContextRestored)
-
-                    // Add new listeners
-                    canvas.addEventListener("webglcontextlost", handleContextLost, false)
-                    canvas.addEventListener("webglcontextrestored", handleContextRestored, false)
-                  }
-                }
-              } catch (error) {
-                console.error("Error in Canvas onCreated:", error)
-                setContextLost(true)
-              }
-            }}
-            onError={(error) => {
-              console.error("Canvas error:", error)
-              setContextLost(true)
-            }}
-          >
-            <GardenSceneContent
-              selectedPlantType={selectedPlantType}
-              plantRotation={plantRotation}
-              onSelectPlant={onSelectPlant}
-            />
-          </Canvas>
+          {createSafeCanvas()}
         </Suspense>
       </CustomErrorBoundary>
 

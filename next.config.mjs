@@ -88,6 +88,75 @@ const nextConfig = {
       sideEffects: false,
     };
     
+    // CRITICAL: Fix webpack optimization that causes 'S' undefined errors
+    config.optimization = {
+      ...config.optimization,
+      // Disable problematic optimizations
+      providedExports: false,
+      usedExports: false,
+      sideEffects: false,
+      // Fix mangling that causes property access issues
+      minimize: !dev,
+      minimizer: !dev ? [
+        '...',
+        // Add custom terser options to prevent property mangling
+        new (require('terser-webpack-plugin'))({
+          terserOptions: {
+            mangle: {
+              properties: false, // Don't mangle property names
+            },
+            compress: {
+              drop_console: false,
+              drop_debugger: false,
+            },
+          },
+        }),
+      ] : [],
+      // Prevent code splitting issues that cause undefined references
+      splitChunks: {
+        ...config.optimization.splitChunks,
+        cacheGroups: {
+          ...config.optimization.splitChunks?.cacheGroups,
+          default: false,
+          vendors: false,
+          // Create stable chunks
+          three: {
+            name: 'three',
+            chunks: 'all',
+            test: /[\\/]node_modules[\\/](three|@react-three)[\\/]/,
+            priority: 20,
+            enforce: true,
+          },
+          motion: {
+            name: 'motion',
+            chunks: 'all',
+            test: /[\\/]node_modules[\\/]framer-motion[\\/]/,
+            priority: 20,
+            enforce: true,
+          },
+          vendor: {
+            name: 'vendor',
+            chunks: 'all',
+            test: /[\\/]node_modules[\\/]/,
+            priority: 10,
+            enforce: true,
+          },
+        },
+      },
+    };
+    
+    // Add resolve extensions to prevent module resolution issues
+    config.resolve.extensions = ['.js', '.jsx', '.ts', '.tsx', '.json', '.mjs'];
+    
+    // Fix module resolution
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      // Ensure consistent three.js resolution
+      'three': require.resolve('three'),
+      // Fix framer-motion resolution
+      'framer-motion': require.resolve('framer-motion'),
+    };
+    
     return config;
   },
   // Enhanced headers to fix CSP and other issues
@@ -98,7 +167,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: data:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' blob: data: https:; worker-src 'self' blob:;",
+            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: data: 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' blob: data: https:; worker-src 'self' blob:; object-src 'none';",
           },
           {
             key: 'Cross-Origin-Embedder-Policy',

@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import PlantInventory from "@/components/plant-inventory"
 import UserProfile from "@/components/user-profile"
-import { useGardenStore, type PlantType } from "@/lib/store"
+import { useGardenStore } from "@/lib/store"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 
@@ -52,7 +52,7 @@ const GardenScene2D = dynamic(() => import("@/components/garden-scene-simplified
 })
 
 export default function GardenPage() {
-  const [selectedPlantType, setSelectedPlantType] = useState<PlantType | null>(null)
+  const [selectedPlantType, setSelectedPlantType] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isMounted, setIsMounted] = useState(false)
   const [loadError, setLoadError] = useState<Error | null>(null)
@@ -163,7 +163,7 @@ export default function GardenPage() {
             {coins} Coins
           </Badge>
           <Badge variant="outline" className="border-green-600 bg-green-900/20 text-green-400">
-            {username}
+            {username || "Anonymous"}
           </Badge>
           {use2D && (
             <Badge variant="outline" className="border-blue-600 bg-blue-900/20 text-blue-400">

@@ -29,7 +29,7 @@ export interface Plant {
   owner: string
   rotation: number
   lastGrowthUpdate: number
-  growthProgress?: number // Added to track partial growth between stages
+  growthProgress?: number
 }
 
 export interface ShopItem {
@@ -364,84 +364,7 @@ export const getShopItems = (): ShopItem[] => [
     rarity: "legendary",
     unlockLevel: 7,
   },
-  {
-    id: "desert-cactus",
-    name: "Desert Cactus",
-    type: "cactus",
-    price: 40,
-    description: "A hardy plant with protective spines",
-    color: "#66bb6a",
-    rarity: "uncommon",
-    unlockLevel: 2,
-  },
-  {
-    id: "venus-flytrap",
-    name: "Venus Flytrap",
-    type: "venus",
-    price: 100,
-    description: "A carnivorous plant with a snapping trap",
-    color: "#8bc34a",
-    rarity: "rare",
-    unlockLevel: 3,
-  },
-  {
-    id: "bonsai-tree",
-    name: "Bonsai Tree",
-    type: "bonsai",
-    price: 250,
-    description: "A miniature tree grown with special care",
-    color: "#81c784",
-    rarity: "epic",
-    unlockLevel: 4,
-  },
-  {
-    id: "glowing-mushroom",
-    name: "Glowing Mushroom",
-    type: "glowshroom",
-    price: 120,
-    description: "A luminescent fungus that glows in the dark",
-    color: "#00bcd4",
-    rarity: "rare",
-    unlockLevel: 3,
-  },
-  {
-    id: "giant-sunflower",
-    name: "Giant Sunflower",
-    type: "sunflower",
-    price: 60,
-    description: "A tall flower that follows the sun",
-    color: "#fdd835",
-    rarity: "uncommon",
-    unlockLevel: 2,
-  },
-  {
-    id: "lucky-bamboo",
-    name: "Lucky Bamboo",
-    type: "bamboo",
-    price: 35,
-    description: "A fast-growing plant that brings good fortune",
-    color: "#7cb342",
-    rarity: "uncommon",
-    unlockLevel: 1,
-  },
-  {
-    id: "exotic-orchid",
-    name: "Exotic Orchid",
-    type: "orchid",
-    price: 350,
-    description: "A delicate flower with intricate patterns",
-    color: "#ba68c8",
-    rarity: "epic",
-    unlockLevel: 6,
-  },
-  {
-    id: "cosmic-starfruit",
-    name: "Cosmic Starfruit",
-    type: "starfruit",
-    price: 600,
-    description: "A legendary plant with star-shaped fruits",
-    color: "#ffeb3b",
-    rarity: "legendary",
-    unlockLevel: 8,
-  },
 ]
+
+// Export default for compatibility
+export default useGardenStore
