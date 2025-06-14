@@ -43,6 +43,15 @@ const nextConfig = {
       type: 'asset/resource',
     });
     
+    // Add support for font files
+    config.module.rules.push({
+      test: /\.(woff|woff2|eot|ttf|otf)$/,
+      type: 'asset/resource',
+      generator: {
+        filename: 'static/fonts/[name].[hash][ext]',
+      },
+    });
+    
     // Better fallbacks for client-side
     if (!isServer) {
       config.resolve.fallback = {
@@ -105,7 +114,7 @@ const nextConfig = {
     
     return config;
   },
-  // Add headers for better compatibility
+  // Add headers for better compatibility and fix CORS issues
   async headers() {
     return [
       {
@@ -118,6 +127,25 @@ const nextConfig = {
           {
             key: 'Cross-Origin-Opener-Policy',
             value: 'same-origin-allow-popups',
+          },
+          // Add font loading headers
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      // Specific headers for font files
+      {
+        source: '/fonts/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*',
           },
         ],
       },

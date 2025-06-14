@@ -29,7 +29,7 @@ export interface Plant {
   owner: string
   rotation: number
   lastGrowthUpdate: number
-  growthProgress: number // Added to track partial growth between stages
+  growthProgress?: number // Added to track partial growth between stages
 }
 
 export interface ShopItem {
@@ -63,7 +63,7 @@ interface GardenState {
 }
 
 // Create some initial plants for the garden
-const createInitialPlants = (username: string) => [
+const createInitialPlants = (username: string): Plant[] => [
   {
     id: "initial-1",
     type: "basic" as PlantType,
@@ -217,55 +217,77 @@ export const useGardenStore = create<GardenState>()(
 
       updatePlantGrowth: () =>
         set((state) => {
-          const now = Date.now()
-          const updatedPlants = state.plants.map((plant) => {
-            if (plant.growthStage >= 5) return plant // Already fully grown
+          try {
+            const now = Date.now()
+            const updatedPlants = state.plants.map((plant) => {
+              try {
+                if (plant.growthStage >= 5) return plant // Already fully grown
 
-            const plantData = getPlantData(plant.type)
-            if (!plantData) return plant
+                const plantData = getPlantData(plant.type)
+                if (!plantData) return plant
 
-            const growthTime = plantData.growthTime * 1000 // Convert to milliseconds
-            const timePerStage = growthTime / 5
-            const timeSinceLastUpdate = now - plant.lastGrowthUpdate
+                const growthTime = plantData.growthTime * 1000 // Convert to milliseconds
+                const timePerStage = growthTime / 5
+                const timeSinceLastUpdate = now - (plant.lastGrowthUpdate || plant.plantedAt)
 
-            // Calculate progress percentage for this update
-            const progressIncrement = timeSinceLastUpdate / timePerStage
-            let newProgress = plant.growthProgress + progressIncrement
-            let newGrowthStage = plant.growthStage
+                // Calculate progress percentage for this update
+                const progressIncrement = timeSinceLastUpdate / timePerStage
+                let newProgress = (plant.growthProgress || 0) + progressIncrement
+                let newGrowthStage = plant.growthStage
 
-            // If progress exceeds 1, increment growth stage
-            if (newProgress >= 1) {
-              const stagesGained = Math.floor(newProgress)
-              newGrowthStage = Math.min(plant.growthStage + stagesGained, 5)
-              newProgress = newProgress - stagesGained
+                // If progress exceeds 1, increment growth stage
+                if (newProgress >= 1) {
+                  const stagesGained = Math.floor(newProgress)
+                  newGrowthStage = Math.min(plant.growthStage + stagesGained, 5)
+                  newProgress = newProgress - stagesGained
 
-              // If plant reaches full growth, give experience
-              if (newGrowthStage >= 5) {
-                // Award experience based on rarity
-                let expReward = 5 // common
-                if (plantData.rarity === "uncommon") expReward = 10
-                if (plantData.rarity === "rare") expReward = 20
-                if (plantData.rarity === "epic") expReward = 35
-                if (plantData.rarity === "legendary") expReward = 50
+                  // If plant reaches full growth, give experience
+                  if (newGrowthStage >= 5) {
+                    // Award experience based on rarity
+                    let expReward = 5 // common
+                    if (plantData.rarity === "uncommon") expReward = 10
+                    if (plantData.rarity === "rare") expReward = 20
+                    if (plantData.rarity === "epic") expReward = 35
+                    if (plantData.rarity === "legendary") expReward = 50
 
-                // Add experience outside this function to avoid state update conflicts
-                setTimeout(() => get().gainExperience(expReward), 0)
+                    // Add experience outside this function to avoid state update conflicts
+                    setTimeout(() => {
+                      try {
+                        get().gainExperience(expReward)
+                      } catch (error) {
+                        console.warn("Error gaining experience:", error)
+                      }
+                    }, 0)
+                  }
+                }
+
+                return {
+                  ...plant,
+                  growthStage: newGrowthStage,
+                  growthProgress: newProgress,
+                  lastGrowthUpdate: now,
+                }
+              } catch (error) {
+                console.warn("Error updating plant growth:", error)
+                return plant
               }
-            }
+            })
 
-            return {
-              ...plant,
-              growthStage: newGrowthStage,
-              growthProgress: newProgress,
-              lastGrowthUpdate: now,
-            }
-          })
-
-          return { plants: updatedPlants }
+            return { plants: updatedPlants }
+          } catch (error) {
+            console.error("Error in updatePlantGrowth:", error)
+            return state
+          }
         }),
     }),
     {
       name: "trench-garden-storage",
+      // Add error handling for storage
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.warn("Error rehydrating storage:", error)
+        }
+      },
     },
   ),
 )
