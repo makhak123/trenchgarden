@@ -25,6 +25,20 @@ const nextConfig = {
     ],
     unoptimized: true,
   },
+  // Add CSP headers for better compatibility
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: "default-src 'self' blob: data:; script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: data:; style-src 'self' 'unsafe-inline' blob: data:; img-src 'self' data: blob: https: http:; font-src 'self' data: blob:; connect-src 'self' blob: data: https: wss: ws:; worker-src 'self' blob: data:; child-src 'self' blob: data:; frame-src 'self' blob: data:; media-src 'self' blob: data:; object-src 'none';"
+          },
+        ],
+      },
+    ]
+  },
   webpack: (config, { isServer }) => {
     // Add support for 3D model files
     config.module.rules.push({

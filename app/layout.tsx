@@ -19,10 +19,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Add CSP meta tag to allow blob URLs and unsafe-inline for scripts */}
+        {/* Updated CSP meta tag to allow unsafe-eval for Three.js and framer-motion */}
         <meta
           httpEquiv="Content-Security-Policy"
-          content="default-src 'self' blob:; script-src 'self' 'unsafe-eval' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self'; connect-src 'self' blob:; worker-src 'self' blob:; child-src 'self' blob:; frame-src 'self' blob:;"
+          content="default-src 'self' blob: data:; script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: data:; style-src 'self' 'unsafe-inline' blob: data:; img-src 'self' data: blob: https: http:; font-src 'self' data: blob:; connect-src 'self' blob: data: https: wss: ws:; worker-src 'self' blob: data:; child-src 'self' blob: data:; frame-src 'self' blob: data:; media-src 'self' blob: data:; object-src 'none';"
         />
       </head>
       <body className={`${GeistSans.variable} ${GeistMono.variable} font-sans antialiased`}>
