@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense, useRef, useCallback } from "react"
 import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import { OrbitControls, Sky } from "@react-three/drei"
 import { Button } from "@/components/ui/button"
-import { useGardenStore } from "@/lib/store"
+import { useGardenStoreSafe } from "@/lib/store-safe"
 import { useToast } from "@/hooks/use-toast"
 import PlantInventoryBar from "./plant-inventory-bar"
 import { getPlantData } from "@/lib/plant-data"
@@ -356,7 +356,7 @@ function MouseTracker({ selectedPlantType, onPositionUpdate, plants }) {
 
 // Main garden scene content
 function GardenSceneContent({ selectedPlantType, plantRotation, onSelectPlant }) {
-  const store = useGardenStore()
+  const store = useGardenStoreSafe()
   const username = safeAccess(store, "username", "Player")
   const plants = safeAccess(store, "plants", [])
   const addPlant = safeAccess(store, "addPlant", () => {})

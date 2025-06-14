@@ -7,6 +7,11 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  // Disable static generation for garden page
+  trailingSlash: false,
+  generateBuildId: async () => {
+    return 'trench-garden-build'
+  },
   transpilePackages: [
     '@react-three/fiber', 
     '@react-three/drei', 
@@ -26,22 +31,22 @@ const nextConfig = {
   },
   experimental: {
     esmExternals: false,
+    // Disable static optimization for pages with 3D content
+    forceSwcTransforms: false,
   },
-  swcMinify: false, // Disable to avoid eval issues
+  swcMinify: false,
   compiler: {
-    removeConsole: false, // Keep console for debugging
+    removeConsole: false,
   },
   webpack: (config, { isServer, dev }) => {
-    // Disable eval-based source maps completely
-    if (!isServer) {
-      config.devtool = false;
-    }
+    // Completely disable eval-based source maps
+    config.devtool = false
     
     // Add support for 3D model files
     config.module.rules.push({
       test: /\.(glb|gltf)$/,
       type: 'asset/resource',
-    });
+    })
     
     // Add support for font files
     config.module.rules.push({
@@ -50,10 +55,29 @@ const nextConfig = {
       generator: {
         filename: 'static/fonts/[name].[hash][ext]',
       },
-    });
+    })
     
-    // Better fallbacks for client-side
-    if (!isServer) {
+    // Server-side fallbacks
+    if (isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        canvas: false,
+        encoding: false,
+        fs: false,
+        path: false,
+        os: false,
+        crypto: false,
+        stream: false,
+        buffer: false,
+        util: false,
+        assert: false,
+        http: false,
+        https: false,
+        url: false,
+        zlib: false,
+      }
+    } else {
+      // Client-side fallbacks
       config.resolve.fallback = {
         fs: false,
         path: false,
@@ -67,28 +91,30 @@ const nextConfig = {
         https: false,
         url: false,
         zlib: false,
-      };
+      }
     }
     
-    // Disable optimization that might use eval
+    // Disable all optimization that might cause issues
     config.optimization = {
       ...config.optimization,
-      minimize: false, // Disable minification to avoid eval
-      splitChunks: false, // Disable code splitting to avoid eval
-    };
+      minimize: false,
+      splitChunks: false,
+      usedExports: false,
+      sideEffects: false,
+    }
     
-    // Ensure no eval is used anywhere
+    // Fix module resolution
     config.module.rules.push({
       test: /\.m?js$/,
       type: 'javascript/auto',
       resolve: {
         fullySpecified: false,
       },
-    });
+    })
     
-    return config;
+    return config
   },
-  // Strict CSP with NO eval
+  // Strict CSP without eval
   async headers() {
     return [
       {
@@ -100,8 +126,12 @@ const nextConfig = {
           },
         ],
       },
-    ];
+    ]
+  },
+  // Force dynamic rendering for garden page
+  async generateStaticParams() {
+    return []
   },
 }
 
-export default nextConfig;
+export default nextConfig

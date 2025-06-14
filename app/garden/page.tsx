@@ -2,23 +2,79 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useGardenStore } from "@/lib/store"
-import LoadingScreen from "@/components/loading-screen"
-import GardenSceneSafe from "@/components/garden-scene-safe"
-import { CustomErrorBoundary } from "@/components/custom-error-boundary"
+import dynamic from "next/dynamic"
+import { Leaf } from "lucide-react"
+
+// Completely disable SSR for all garden components
+const LoadingScreen = dynamic(() => import("@/components/loading-screen"), {
+  ssr: false,
+  loading: () => (
+    <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="text-center">
+        <Leaf className="mx-auto mb-4 h-12 w-12 text-green-400 animate-pulse" />
+        <div className="text-green-400 text-xl">Loading Garden...</div>
+      </div>
+    </div>
+  ),
+})
+
+const GardenSceneSafe = dynamic(() => import("@/components/garden-scene-safe"), {
+  ssr: false,
+  loading: () => (
+    <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="text-center">
+        <Leaf className="mx-auto mb-4 h-12 w-12 text-green-400 animate-pulse" />
+        <div className="text-green-400 text-xl">Loading 3D Garden...</div>
+      </div>
+    </div>
+  ),
+})
+
+const CustomErrorBoundary = dynamic(
+  () => import("@/components/custom-error-boundary").then((mod) => ({ default: mod.CustomErrorBoundary })),
+  {
+    ssr: false,
+    loading: () => <div className="min-h-screen bg-black"></div>,
+  },
+)
 
 export default function GardenPage() {
-  const router = useRouter()
-  const { username } = useGardenStore()
+  const [isMounted, setIsMounted] = useState(false)
   const [selectedPlantType, setSelectedPlantType] = useState(null)
   const [showLoading, setShowLoading] = useState(true)
   const [gardenError, setGardenError] = useState(null)
+  const [username, setUsername] = useState(null)
+  const router = useRouter()
 
+  // Only run on client
   useEffect(() => {
-    if (!username) {
-      router.push("/")
+    setIsMounted(true)
+
+    // Safe store access only on client
+    if (typeof window !== "undefined") {
+      try {
+        // Import store dynamically to avoid SSR issues
+        import("@/lib/store")
+          .then(({ useGardenStore }) => {
+            const store = useGardenStore.getState()
+            const currentUsername = store?.username
+
+            if (!currentUsername) {
+              router.push("/")
+            } else {
+              setUsername(currentUsername)
+            }
+          })
+          .catch((error) => {
+            console.error("Error loading store:", error)
+            router.push("/")
+          })
+      } catch (error) {
+        console.error("Error accessing store:", error)
+        router.push("/")
+      }
     }
-  }, [username, router])
+  }, [router])
 
   const handleLoadingComplete = () => {
     setShowLoading(false)
@@ -33,10 +89,23 @@ export default function GardenPage() {
     setSelectedPlantType(plantType)
   }
 
+  // Don't render anything on server
+  if (!isMounted) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <Leaf className="mx-auto mb-4 h-12 w-12 text-green-400 animate-pulse" />
+          <div className="text-green-400 text-xl">Loading...</div>
+        </div>
+      </div>
+    )
+  }
+
+  // Show loading while checking username
   if (!username) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-green-400 text-xl">Redirecting...</div>
+        <div className="text-green-400 text-xl">Checking access...</div>
       </div>
     )
   }
