@@ -6,12 +6,17 @@ import { OrbitControls, Environment, Html } from "@react-three/drei"
 import { Button } from "@/components/ui/button"
 import { useGardenStore } from "@/lib/store"
 import { useToast } from "@/hooks/use-toast"
-import { ShoppingBag, RotateCcw, Users, RotateCw } from "lucide-react"
+import { Icons } from "@/lib/icon-loader" // Import from our utility
 import { useRouter } from "next/navigation"
 import PlantInventoryBar from "./plant-inventory-bar"
 import { getPlantData } from "@/lib/plant-data"
 import { Vector3, Raycaster, Plane } from "three"
 import { Progress } from "@/components/ui/progress"
+
+// Function to check if a URL is a blob URL
+function isBlobUrl(url) {
+  return url && typeof url === "string" && url.startsWith("blob:")
+}
 
 // Low-poly wooden fence post
 function FencePost({ position }) {
@@ -526,6 +531,9 @@ export default function GardenSceneEnhanced({ selectedPlantType, onSelectPlant }
   const [isMounted, setIsMounted] = useState(false)
   const [localSelectedPlantType, setLocalSelectedPlantType] = useState(selectedPlantType)
 
+  // Get icons from our utility
+  const { ShoppingBag, RotateCcw, Users, RotateCw } = Icons
+
   useEffect(() => {
     setIsMounted(true)
     setLocalSelectedPlantType(selectedPlantType)
@@ -576,6 +584,29 @@ export default function GardenSceneEnhanced({ selectedPlantType, onSelectPlant }
                 }
               } catch (e) {
                 console.error("Error accessing extensions:", e)
+              }
+            }
+
+            // Add support for blob URLs
+            const originalTexImage2D = state.gl.texImage2D
+            if (originalTexImage2D) {
+              state.gl.texImage2D = function (...args) {
+                const [target, level, internalformat, format, type, source] = args
+
+                // Check if the source is an HTMLImageElement with a blob URL
+                if (source && source instanceof HTMLImageElement && isBlobUrl(source.src)) {
+                  // Create a new image with crossOrigin set
+                  const img = new Image()
+                  img.crossOrigin = "anonymous"
+                  img.onload = () => {
+                    args[5] = img
+                    originalTexImage2D.apply(this, args)
+                  }
+                  img.src = source.src
+                  return
+                }
+
+                return originalTexImage2D.apply(this, args)
               }
             }
           }

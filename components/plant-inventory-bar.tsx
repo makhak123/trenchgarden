@@ -3,11 +3,13 @@
 import { useState, useEffect, useCallback } from "react"
 import { useGardenStore } from "@/lib/store"
 import { cn } from "@/lib/utils"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Badge } from "@/components/ui/badge"
+import { Card, CardContent } from "@/components/ui/card"
 import { getPlantData } from "@/lib/plant-data"
+import { CustomTooltip } from "@/components/ui/custom-tooltip"
+import { Sparkles } from "lucide-react"
 
-export default function PlantInventoryBar({ onSelectPlant, selectedPlant }) {
+export function PlantInventoryBar({ onSelectPlant, selectedPlant }) {
   const { inventory } = useGardenStore()
   const [hoveredPlant, setHoveredPlant] = useState(null)
 
@@ -98,90 +100,154 @@ export default function PlantInventoryBar({ onSelectPlant, selectedPlant }) {
     }
   }, [handleKeyDown])
 
-  return (
-    <div className="absolute bottom-0 left-0 right-0 flex h-24 items-center justify-center bg-gradient-to-t from-black/80 to-transparent px-4 pb-2">
-      <div className="flex h-20 items-center gap-1 rounded-md bg-black/80 p-1 backdrop-blur-md">
-        {slots.map((plant, index) => {
-          if (!plant) {
-            // Empty slot
-            return (
-              <div
-                key={`empty-${index}`}
-                className="flex h-16 w-16 items-center justify-center rounded border-2 border-gray-700/50 bg-gray-800/30"
-              >
-                <span className="text-gray-500 text-xs">Empty</span>
-                <Badge className="absolute -right-1 -top-1 h-5 w-5 p-0 text-[10px] bg-gray-700">{index + 1}</Badge>
-              </div>
-            )
-          }
+  const getRarityColor = (rarity) => {
+    switch (rarity) {
+      case "common":
+        return "border-gray-500/50 bg-gray-800/30"
+      case "uncommon":
+        return "border-green-500/50 bg-green-900/30"
+      case "rare":
+        return "border-blue-500/50 bg-blue-900/30"
+      case "epic":
+        return "border-purple-500/50 bg-purple-900/30"
+      case "legendary":
+        return "border-amber-500/50 bg-amber-900/30"
+      default:
+        return "border-gray-500/50 bg-gray-800/30"
+    }
+  }
 
-          const plantData = getPlantData(plant.type)
-          return (
-            <TooltipProvider key={plant.id || `plant-${index}`}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div
-                    className={cn(
-                      "group relative flex h-16 w-16 cursor-pointer items-center justify-center rounded border-2 transition-all hover:border-green-400",
-                      selectedPlant === plant.type
-                        ? "border-green-500 bg-green-900/40"
-                        : "border-gray-700/50 bg-gray-800/50 hover:bg-gray-700/30",
-                    )}
-                    onClick={() => handlePlantClick(plant.type)}
-                    onMouseEnter={() => setHoveredPlant(plant.type)}
-                    onMouseLeave={() => setHoveredPlant(null)}
-                  >
+  const getRarityBadgeColor = (rarity) => {
+    switch (rarity) {
+      case "common":
+        return "bg-gray-600"
+      case "uncommon":
+        return "bg-green-600"
+      case "rare":
+        return "bg-blue-600"
+      case "epic":
+        return "bg-purple-600"
+      case "legendary":
+        return "bg-amber-600"
+      default:
+        return "bg-gray-600"
+    }
+  }
+
+  return (
+    <div className="absolute bottom-0 left-0 right-0 z-20">
+      <div className="mx-4 mb-4">
+        <Card className="border-green-500/20 bg-black/80 backdrop-blur-md">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-green-400" />
+                <h3 className="font-medium text-green-400">Plant Inventory</h3>
+              </div>
+              <p className="text-xs text-green-300/70">Press 1-9 to quick select</p>
+            </div>
+
+            <div className="flex items-center justify-center gap-2">
+              {slots.map((plant, index) => {
+                if (!plant) {
+                  // Empty slot
+                  return (
                     <div
-                      className="h-12 w-12 rounded-sm"
-                      style={{
-                        backgroundColor: plant.color,
-                        boxShadow: `0 0 15px ${plant.color}60`,
-                      }}
-                    />
-                    <Badge
-                      className={cn(
-                        "absolute -right-1 -top-1 h-5 w-5 p-0 text-[10px]",
-                        plant.rarity === "common" && "bg-gray-500",
-                        plant.rarity === "uncommon" && "bg-green-500",
-                        plant.rarity === "rare" && "bg-blue-500",
-                        plant.rarity === "epic" && "bg-purple-500",
-                        plant.rarity === "legendary" && "bg-amber-500",
-                      )}
+                      key={`empty-${index}`}
+                      className="relative flex h-16 w-16 items-center justify-center rounded-lg border-2 border-dashed border-gray-700/50 bg-gray-800/20"
                     >
-                      {index + 1}
-                    </Badge>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="bg-black/90 text-white">
-                  <div className="flex flex-col gap-1 p-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-bold">{plant.name}</span>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "text-xs",
-                          plant.rarity === "common" && "border-gray-500 text-gray-300",
-                          plant.rarity === "uncommon" && "border-green-500 text-green-300",
-                          plant.rarity === "rare" && "border-blue-500 text-blue-300",
-                          plant.rarity === "epic" && "border-purple-500 text-purple-300",
-                          plant.rarity === "legendary" && "border-amber-500 text-amber-300",
-                        )}
-                      >
-                        {plant.rarity}
+                      <span className="text-gray-500 text-xs">Empty</span>
+                      <Badge className="absolute -right-1 -top-1 h-5 w-5 p-0 text-[10px] bg-gray-700 border-gray-600">
+                        {index + 1}
                       </Badge>
                     </div>
-                    <p className="text-xs text-gray-300">{plant.description}</p>
-                    <p className="text-xs text-gray-400">Growth time: {plantData?.growthTime || 60} seconds</p>
-                    <p className="text-xs text-gray-400 italic">
-                      Click to {selectedPlant === plant.type ? "deselect" : "select"}
-                    </p>
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )
-        })}
+                  )
+                }
+
+                const plantData = getPlantData(plant.type)
+                const isSelected = selectedPlant === plant.type
+
+                return (
+                  <CustomTooltip
+                    key={plant.id || `plant-${index}`}
+                    content={
+                      <div className="flex flex-col gap-2 p-2 max-w-xs">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-bold text-white">{plant.name}</span>
+                          <Badge className={cn("text-xs border-0", getRarityBadgeColor(plant.rarity))}>
+                            {plant.rarity}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-gray-300">{plant.description}</p>
+                        {plantData && <p className="text-xs text-gray-400">Growth time: {plantData.growthTime}s</p>}
+                        <div className="border-t border-gray-600 pt-2">
+                          <p className="text-xs text-green-400 font-medium">
+                            {isSelected ? "Click to deselect" : "Click to select"}
+                          </p>
+                          <p className="text-xs text-gray-500">Hotkey: {index + 1}</p>
+                        </div>
+                      </div>
+                    }
+                  >
+                    <div
+                      className={cn(
+                        "group relative flex h-16 w-16 cursor-pointer items-center justify-center rounded-lg border-2 transition-all duration-200 hover:scale-105",
+                        isSelected
+                          ? "border-green-400 bg-green-900/40 shadow-lg shadow-green-500/25"
+                          : getRarityColor(plant.rarity),
+                        "hover:border-green-400/70",
+                      )}
+                      onClick={() => handlePlantClick(plant.type)}
+                      onMouseEnter={() => setHoveredPlant(plant.type)}
+                      onMouseLeave={() => setHoveredPlant(null)}
+                    >
+                      {/* Plant icon */}
+                      <div
+                        className={cn(
+                          "h-10 w-10 rounded-lg transition-all duration-200",
+                          isSelected && "animate-pulse",
+                        )}
+                        style={{
+                          backgroundColor: plant.color,
+                          boxShadow: isSelected ? `0 0 20px ${plant.color}60` : `0 0 10px ${plant.color}40`,
+                        }}
+                      >
+                        <div className="flex h-full w-full items-center justify-center text-white font-bold text-sm">
+                          {plant.type.charAt(0).toUpperCase()}
+                        </div>
+                      </div>
+
+                      {/* Slot number */}
+                      <Badge
+                        className={cn(
+                          "absolute -right-1 -top-1 h-5 w-5 p-0 text-[10px] border-0 transition-colors",
+                          isSelected ? "bg-green-600" : getRarityBadgeColor(plant.rarity),
+                        )}
+                      >
+                        {index + 1}
+                      </Badge>
+
+                      {/* Selection glow effect */}
+                      {isSelected && (
+                        <div className="absolute inset-0 rounded-lg border-2 border-green-400 animate-pulse" />
+                      )}
+
+                      {/* Rarity sparkle effect for epic+ items */}
+                      {(plant.rarity === "epic" || plant.rarity === "legendary") && (
+                        <div className="absolute top-1 left-1">
+                          <Sparkles className="h-3 w-3 text-amber-400 animate-pulse" />
+                        </div>
+                      )}
+                    </div>
+                  </CustomTooltip>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
 }
+
+export default PlantInventoryBar
