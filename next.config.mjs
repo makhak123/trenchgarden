@@ -71,7 +71,7 @@ const nextConfig = {
       };
     }
     
-    // Fix for framer-motion in production
+    // Fix for framer-motion and other modules
     config.module.rules.push({
       test: /\.m?js$/,
       type: 'javascript/auto',
@@ -80,46 +80,26 @@ const nextConfig = {
       },
     });
     
-    // Optimize for production
-    if (!dev && !isServer) {
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        'three': 'three',
-        'framer-motion': 'framer-motion',
-      };
-      
-      // Prevent code splitting issues
-      config.optimization = {
-        ...config.optimization,
-        splitChunks: {
-          ...config.optimization.splitChunks,
-          cacheGroups: {
-            ...config.optimization.splitChunks?.cacheGroups,
-            three: {
-              name: 'three',
-              chunks: 'all',
-              test: /[\\/]node_modules[\\/](three|@react-three)[\\/]/,
-              priority: 20,
-            },
-            motion: {
-              name: 'motion',
-              chunks: 'all',
-              test: /[\\/]node_modules[\\/]framer-motion[\\/]/,
-              priority: 20,
-            },
-          },
-        },
-      };
-    }
+    // Prevent problematic optimizations that cause undefined errors
+    config.optimization = {
+      ...config.optimization,
+      providedExports: false,
+      usedExports: false,
+      sideEffects: false,
+    };
     
     return config;
   },
-  // Add headers for better compatibility and fix CORS issues
+  // Enhanced headers to fix CSP and other issues
   async headers() {
     return [
       {
         source: '/(.*)',
         headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: data:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' blob: data: https:; worker-src 'self' blob:;",
+          },
           {
             key: 'Cross-Origin-Embedder-Policy',
             value: 'unsafe-none',
@@ -128,24 +108,9 @@ const nextConfig = {
             key: 'Cross-Origin-Opener-Policy',
             value: 'same-origin-allow-popups',
           },
-          // Add font loading headers
           {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
-      // Specific headers for font files
-      {
-        source: '/fonts/(.*)',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-          {
-            key: 'Access-Control-Allow-Origin',
-            value: '*',
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
           },
         ],
       },
