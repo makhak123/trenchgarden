@@ -9,7 +9,7 @@ import { ShoppingBag, Users, RotateCcw, RotateCw, Coins, Leaf, Settings, Info, X
 import { useRouter } from "next/navigation"
 import { useGardenStore } from "@/lib/store"
 import { CustomTooltip } from "@/components/ui/custom-tooltip"
-import { motion, AnimatePresence } from "framer-motion"
+import { MotionDiv, SafeAnimatePresence } from "@/components/motion-wrapper"
 
 interface EnhancedUIProps {
   selectedPlantType: string | null
@@ -34,7 +34,7 @@ export default function EnhancedUI({ selectedPlantType, onRotatePlant }: Enhance
   return (
     <>
       {/* Minimalist Top Bar */}
-      <motion.div
+      <MotionDiv
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: "spring", stiffness: 100, damping: 20 }}
@@ -42,7 +42,7 @@ export default function EnhancedUI({ selectedPlantType, onRotatePlant }: Enhance
       >
         <div className="flex items-center justify-between">
           {/* Left - Logo */}
-          <motion.div
+          <MotionDiv
             whileHover={{ scale: 1.05 }}
             className="flex items-center gap-3 bg-black/60 backdrop-blur-xl rounded-2xl px-4 py-2 border border-green-500/20"
           >
@@ -55,10 +55,10 @@ export default function EnhancedUI({ selectedPlantType, onRotatePlant }: Enhance
             <div>
               <h1 className="font-mono text-sm font-bold text-green-400">TRENCH GARDEN</h1>
             </div>
-          </motion.div>
+          </MotionDiv>
 
           {/* Center - User Stats (Compact) */}
-          <motion.div
+          <MotionDiv
             whileHover={{ scale: 1.02 }}
             className="flex items-center gap-3 bg-black/60 backdrop-blur-xl rounded-2xl px-4 py-2 border border-green-500/20"
           >
@@ -87,11 +87,11 @@ export default function EnhancedUI({ selectedPlantType, onRotatePlant }: Enhance
               <Coins className="mr-1 h-3 w-3" />
               {coins.toLocaleString()}
             </Badge>
-          </motion.div>
+          </MotionDiv>
 
           {/* Right - Action buttons */}
           <div className="flex items-center gap-2">
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <MotionDiv whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <CustomTooltip content="Visit other gardens">
                 <Button
                   variant="outline"
@@ -102,9 +102,9 @@ export default function EnhancedUI({ selectedPlantType, onRotatePlant }: Enhance
                   <Users className="h-4 w-4" />
                 </Button>
               </CustomTooltip>
-            </motion.div>
+            </MotionDiv>
 
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <MotionDiv whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <CustomTooltip content="Shop for new plants">
                 <Button
                   size="sm"
@@ -114,9 +114,9 @@ export default function EnhancedUI({ selectedPlantType, onRotatePlant }: Enhance
                   <ShoppingBag className="h-4 w-4" />
                 </Button>
               </CustomTooltip>
-            </motion.div>
+            </MotionDiv>
 
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <MotionDiv whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <CustomTooltip content="Help & Settings">
                 <Button
                   variant="outline"
@@ -127,15 +127,15 @@ export default function EnhancedUI({ selectedPlantType, onRotatePlant }: Enhance
                   <Settings className="h-4 w-4" />
                 </Button>
               </CustomTooltip>
-            </motion.div>
+            </MotionDiv>
           </div>
         </div>
-      </motion.div>
+      </MotionDiv>
 
       {/* Plant Rotation Controls - Only show when plant selected */}
-      <AnimatePresence>
+      <SafeAnimatePresence>
         {selectedPlantType && (
-          <motion.div
+          <MotionDiv
             initial={{ x: -100, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: -100, opacity: 0 }}
@@ -146,7 +146,7 @@ export default function EnhancedUI({ selectedPlantType, onRotatePlant }: Enhance
               <CardContent className="p-3">
                 <div className="flex items-center gap-2">
                   <p className="text-xs font-medium text-green-400 mr-2">Rotate:</p>
-                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                  <MotionDiv whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                     <CustomTooltip content="Rotate left">
                       <Button
                         variant="outline"
@@ -157,8 +157,8 @@ export default function EnhancedUI({ selectedPlantType, onRotatePlant }: Enhance
                         <RotateCcw className="h-3 w-3" />
                       </Button>
                     </CustomTooltip>
-                  </motion.div>
-                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                  </MotionDiv>
+                  <MotionDiv whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                     <CustomTooltip content="Rotate right">
                       <Button
                         variant="outline"
@@ -169,18 +169,18 @@ export default function EnhancedUI({ selectedPlantType, onRotatePlant }: Enhance
                         <RotateCw className="h-3 w-3" />
                       </Button>
                     </CustomTooltip>
-                  </motion.div>
+                  </MotionDiv>
                 </div>
               </CardContent>
             </Card>
-          </motion.div>
+          </MotionDiv>
         )}
-      </AnimatePresence>
+      </SafeAnimatePresence>
 
       {/* Selected Plant Indicator - Floating at top center */}
-      <AnimatePresence>
+      <SafeAnimatePresence>
         {selectedPlantType && (
-          <motion.div
+          <MotionDiv
             initial={{ y: -50, opacity: 0, scale: 0.8 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: -50, opacity: 0, scale: 0.8 }}
@@ -205,14 +205,14 @@ export default function EnhancedUI({ selectedPlantType, onRotatePlant }: Enhance
                 </div>
               </CardContent>
             </Card>
-          </motion.div>
+          </MotionDiv>
         )}
-      </AnimatePresence>
+      </SafeAnimatePresence>
 
       {/* Instructions Panel - Slide in from right - FIXED CLOSE BUTTON */}
-      <AnimatePresence>
+      <SafeAnimatePresence>
         {showInstructions && (
-          <motion.div
+          <MotionDiv
             initial={{ x: 400, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 400, opacity: 0 }}
@@ -256,9 +256,9 @@ export default function EnhancedUI({ selectedPlantType, onRotatePlant }: Enhance
                 </div>
               </CardContent>
             </Card>
-          </motion.div>
+          </MotionDiv>
         )}
-      </AnimatePresence>
+      </SafeAnimatePresence>
     </>
   )
 }

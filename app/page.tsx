@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { useGardenStore } from "@/lib/store"
-import { motion } from "framer-motion"
+import { MotionDiv } from "@/components/motion-wrapper"
 import dynamic from "next/dynamic"
 
 // Import LoadingScreen with no SSR and a loading component
@@ -85,7 +85,7 @@ export default function Home() {
 
       {/* Content */}
       <div className="relative z-10 flex h-full flex-col items-center justify-center px-4 text-center">
-        <motion.div
+        <MotionDiv
           initial={{ y: -100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ type: "spring", stiffness: 50, damping: 10, delay: 0.3 }}
@@ -93,18 +93,19 @@ export default function Home() {
           <h1 className="mb-2 font-mono text-6xl font-bold tracking-tighter text-green-400 drop-shadow-[0_0_10px_rgba(74,222,128,0.5)] md:text-7xl">
             TRENCH GARDEN
           </h1>
-        </motion.div>
+        </MotionDiv>
 
-        <motion.p
+        <MotionDiv
           initial={{ y: -50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ type: "spring", stiffness: 50, damping: 10, delay: 0.5 }}
-          className="mb-8 max-w-md text-lg text-green-200 drop-shadow-[0_0_5px_rgba(74,222,128,0.5)]"
         >
-          Plant and grow your own virtual garden with your Garden Coins
-        </motion.p>
+          <p className="mb-8 max-w-md text-lg text-green-200 drop-shadow-[0_0_5px_rgba(74,222,128,0.5)]">
+            Plant and grow your own virtual garden with your Garden Coins
+          </p>
+        </MotionDiv>
 
-        <motion.div
+        <MotionDiv
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ type: "spring", stiffness: 50, damping: 10, delay: 0.7 }}
@@ -135,16 +136,16 @@ export default function Home() {
               Connect Wallet
             </Button>
           </div>
-        </motion.div>
+        </MotionDiv>
 
-        <motion.div
+        <MotionDiv
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ type: "spring", stiffness: 50, damping: 10, delay: 0.9 }}
           className="mt-8 text-sm text-green-400/80 bg-black/30 px-3 py-1 rounded-full backdrop-blur-sm"
         >
           Hold Garden Coins to unlock rare plants
-        </motion.div>
+        </MotionDiv>
       </div>
     </div>
   )
