@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
-import ErrorFallback from "@/components/error-fallback"
+import { useRouter } from "next/navigation"
 
 export default function GardenError({
   error,
@@ -10,18 +10,13 @@ export default function GardenError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
-  useEffect(() => {
-    console.error("Garden page error:", error)
-  }, [error])
+  const router = useRouter()
 
-  return (
-    <div className="min-h-screen bg-black">
-      <ErrorFallback
-        error={error}
-        resetError={reset}
-        title="Garden Loading Error"
-        description="We couldn't load your garden. This might be due to browser compatibility issues."
-      />
-    </div>
-  )
+  useEffect(() => {
+    console.error("Garden error:", error)
+    // Automatically redirect to home instead of showing error screen
+    router.push("/")
+  }, [error, router])
+
+  return null
 }
