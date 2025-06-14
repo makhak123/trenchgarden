@@ -1,98 +1,144 @@
+"use client"
+
 /**
- * Safe property access utility to prevent undefined property errors
+ * Safe property access utilities to prevent undefined errors
  */
 
-// Type-safe property accessor
-export function safeGet<T, K extends keyof T>(obj: T | undefined | null, key: K): T[K] | undefined {
-  if (obj == null) return undefined
-  try {
-    return obj[key]
-  } catch (error) {
-    console.warn(`Safe access failed for key "${String(key)}":`, error)
-    return undefined
+// Global error handler setup
+export function setupGlobalErrorHandler() {
+  if (typeof window !== "undefined") {
+    // Catch unhandled promise rejections
+    window.addEventListener("unhandledrejection", (event) => {
+      console.warn("Unhandled promise rejection:", event.reason)
+      event.preventDefault()
+    })
+
+    // Catch general errors
+    window.addEventListener("error", (event) => {
+      if (event.message && event.message.includes("Cannot read properties of undefined")) {
+        console.warn("Caught undefined property error:", event.message)
+        event.preventDefault()
+        return true
+      }
+    })
   }
 }
 
-// Deep property access with path
-export function safeGetPath<T = any>(obj: any, path: string): T | undefined {
-  if (obj == null || typeof path !== "string") return undefined
-
+// Safe property getter
+export function safeGet<T = any>(obj: any, path: string | string[], defaultValue: T | null = null): T | null {
   try {
-    return path.split(".").reduce((current, key) => {
-      if (current == null) return undefined
-      return current[key]
-    }, obj)
+    if (!obj || typeof obj !== "object") return defaultValue
+
+    const keys = Array.isArray(path) ? path : path.split(".")
+    let result = obj
+
+    for (const key of keys) {
+      if (result == null || typeof result !== "object") {
+        return defaultValue
+      }
+      result = result[key]
+    }
+
+    return result !== undefined ? result : defaultValue
   } catch (error) {
-    console.warn(`Safe path access failed for path "${path}":`, error)
-    return undefined
+    console.warn(`Safe get failed for path ${path}:`, error)
+    return defaultValue
   }
 }
 
-// Safe function call
-export function safeCall<T extends (...args: any[]) => any>(
-  fn: T | undefined | null,
-  ...args: Parameters<T>
-): ReturnType<T> | undefined {
-  if (typeof fn !== "function") return undefined
-
+// Safe property setter
+export function safeSet(obj: any, path: string | string[], value: any): boolean {
   try {
-    return fn(...args)
-  } catch (error) {
-    console.warn("Safe function call failed:", error)
-    return undefined
-  }
-}
+    if (!obj || typeof obj !== "object") return false
 
-// Safe object property assignment
-export function safeSet<T extends object, K extends keyof T>(obj: T | undefined | null, key: K, value: T[K]): boolean {
-  if (obj == null) return false
+    const keys = Array.isArray(path) ? path : path.split(".")
+    const lastKey = keys.pop()
 
-  try {
-    obj[key] = value
+    if (!lastKey) return false
+
+    let current = obj
+    for (const key of keys) {
+      if (current[key] == null || typeof current[key] !== "object") {
+        current[key] = {}
+      }
+      current = current[key]
+    }
+
+    current[lastKey] = value
     return true
   } catch (error) {
-    console.warn(`Safe set failed for key "${String(key)}":`, error)
+    console.warn(`Safe set failed for path ${path}:`, error)
     return false
   }
 }
 
-// Global error handler for undefined property access
-export function setupGlobalErrorHandler() {
-  if (typeof window !== "undefined") {
-    // Override property access to catch undefined errors
-    const originalError = window.onerror
-
-    window.onerror = function (message, source, lineno, colno, error) {
-      // Check if it's the "Cannot read properties of undefined" error
-      if (typeof message === "string" && message.includes("Cannot read properties of undefined")) {
-        console.warn("Caught undefined property access:", {
-          message,
-          source,
-          lineno,
-          colno,
-          error,
-        })
-
-        // Don't let this error crash the app
-        return true
-      }
-
-      // Call original error handler
-      if (originalError) {
-        return originalError.call(this, message, source, lineno, colno, error)
-      }
-
-      return false
+// Safe function caller
+export function safeCall<T = any>(fn: Function | undefined, ...args: any[]): T | null {
+  try {
+    if (typeof fn === "function") {
+      return fn(...args)
     }
+    return null
+  } catch (error) {
+    console.warn("Safe call failed:", error)
+    return null
+  }
+}
 
-    // Also handle unhandled promise rejections
-    window.addEventListener("unhandledrejection", (event) => {
-      if (event.reason && typeof event.reason.message === "string") {
-        if (event.reason.message.includes("Cannot read properties of undefined")) {
-          console.warn("Caught unhandled promise rejection for undefined property:", event.reason)
-          event.preventDefault()
+// Safe object property access with proxy
+export function createSafeProxy<T extends object>(target: T, name = "SafeProxy"): T {
+  if (!target || typeof target !== "object") {
+    return target
+  }
+
+  return new Proxy(target, {
+    get(obj, prop, receiver) {
+      try {
+        const value = Reflect.get(obj, prop, receiver)
+
+        // If accessing a function, wrap it safely
+        if (typeof value === "function") {
+          return function (...args: any[]) {
+            try {
+              return value.apply(this, args)
+            } catch (error) {
+              console.warn(`${name}.${String(prop)} method call failed:`, error)
+              return undefined
+            }
+          }
         }
+
+        return value
+      } catch (error) {
+        console.warn(`${name}.${String(prop)} property access failed:`, error)
+        return undefined
       }
-    })
+    },
+
+    set(obj, prop, value, receiver) {
+      try {
+        return Reflect.set(obj, prop, value, receiver)
+      } catch (error) {
+        console.warn(`${name}.${String(prop)} property set failed:`, error)
+        return false
+      }
+    },
+  })
+}
+
+// Initialize safe globals
+if (typeof window !== "undefined") {
+  // Ensure common globals exist
+  window.THREE = window.THREE || {}
+
+  // Safe console methods
+  if (!window.console) {
+    window.console = {
+      log: () => {},
+      warn: () => {},
+      error: () => {},
+      info: () => {},
+      debug: () => {},
+    } as any
   }
 }

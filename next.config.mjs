@@ -80,63 +80,27 @@ const nextConfig = {
       },
     });
     
-    // CRITICAL: Fix webpack optimization that causes 'S' undefined errors
-    config.optimization = {
-      ...config.optimization,
-      // Disable problematic optimizations
-      providedExports: false,
-      usedExports: false,
-      sideEffects: false,
-      // Fix mangling that causes property access issues
-      minimize: !dev,
-      // Prevent code splitting issues that cause undefined references
-      splitChunks: {
-        ...config.optimization.splitChunks,
-        cacheGroups: {
-          ...config.optimization.splitChunks?.cacheGroups,
-          default: false,
-          vendors: false,
-          // Create stable chunks
-          three: {
-            name: 'three',
-            chunks: 'all',
-            test: /[\\/]node_modules[\\/](three|@react-three)[\\/]/,
-            priority: 20,
-            enforce: true,
-          },
-          motion: {
-            name: 'motion',
-            chunks: 'all',
-            test: /[\\/]node_modules[\\/]framer-motion[\\/]/,
-            priority: 20,
-            enforce: true,
-          },
-          vendor: {
-            name: 'vendor',
-            chunks: 'all',
-            test: /[\\/]node_modules[\\/]/,
-            priority: 10,
-            enforce: true,
+    // Simple optimization to prevent undefined errors
+    if (!dev) {
+      config.optimization = {
+        ...config.optimization,
+        minimize: true,
+        splitChunks: {
+          chunks: 'all',
+          cacheGroups: {
+            vendor: {
+              test: /[\\/]node_modules[\\/]/,
+              name: 'vendors',
+              chunks: 'all',
+            },
           },
         },
-      },
-    };
-    
-    // Add resolve extensions to prevent module resolution issues
-    config.resolve.extensions = ['.js', '.jsx', '.ts', '.tsx', '.json', '.mjs'];
-    
-    // Fix module resolution - removed require.resolve calls
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      // Ensure consistent three.js resolution
-      'three': 'three',
-      // Fix framer-motion resolution
-      'framer-motion': 'framer-motion',
-    };
+      };
+    }
     
     return config;
   },
-  // Enhanced headers to fix CSP and other issues
+  // Relaxed CSP that allows eval
   async headers() {
     return [
       {
@@ -144,19 +108,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: data: 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' blob: data: https:; worker-src 'self' blob:; object-src 'none';",
-          },
-          {
-            key: 'Cross-Origin-Embedder-Policy',
-            value: 'unsafe-none',
-          },
-          {
-            key: 'Cross-Origin-Opener-Policy',
-            value: 'same-origin-allow-popups',
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
+            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: data:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' blob: data: https:; worker-src 'self' blob:; object-src 'none';",
           },
         ],
       },
