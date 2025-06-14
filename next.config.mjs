@@ -80,14 +80,6 @@ const nextConfig = {
       },
     });
     
-    // Prevent problematic optimizations that cause undefined errors
-    config.optimization = {
-      ...config.optimization,
-      providedExports: false,
-      usedExports: false,
-      sideEffects: false,
-    };
-    
     // CRITICAL: Fix webpack optimization that causes 'S' undefined errors
     config.optimization = {
       ...config.optimization,
@@ -97,21 +89,6 @@ const nextConfig = {
       sideEffects: false,
       // Fix mangling that causes property access issues
       minimize: !dev,
-      minimizer: !dev ? [
-        '...',
-        // Add custom terser options to prevent property mangling
-        new (require('terser-webpack-plugin'))({
-          terserOptions: {
-            mangle: {
-              properties: false, // Don't mangle property names
-            },
-            compress: {
-              drop_console: false,
-              drop_debugger: false,
-            },
-          },
-        }),
-      ] : [],
       // Prevent code splitting issues that cause undefined references
       splitChunks: {
         ...config.optimization.splitChunks,
@@ -148,13 +125,13 @@ const nextConfig = {
     // Add resolve extensions to prevent module resolution issues
     config.resolve.extensions = ['.js', '.jsx', '.ts', '.tsx', '.json', '.mjs'];
     
-    // Fix module resolution
+    // Fix module resolution - removed require.resolve calls
     config.resolve.alias = {
       ...config.resolve.alias,
       // Ensure consistent three.js resolution
-      'three': require.resolve('three'),
+      'three': 'three',
       // Fix framer-motion resolution
-      'framer-motion': require.resolve('framer-motion'),
+      'framer-motion': 'framer-motion',
     };
     
     return config;
