@@ -1,4 +1,8 @@
-export const dynamic = "force-dynamic"
+"use client"
+
+import dynamic from "next/dynamic"
+
+export const forceDynamic = "force-dynamic"
 
 const GardenScene = dynamic(() => import("@/components/garden-scene-safe"), {
   ssr: false,
