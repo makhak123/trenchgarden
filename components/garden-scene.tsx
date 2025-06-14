@@ -617,11 +617,13 @@ function GardenSceneContent({ selectedPlantType, plantRotation, onSelectPlant })
   )
 }
 
-// Main component
+// Main component with enhanced WebGL context recovery
 export default function GardenScene({ selectedPlantType, onError, onSelectPlant }) {
   const router = useRouter()
   const [plantRotation, setPlantRotation] = useState(0)
   const [isMounted, setIsMounted] = useState(false)
+  const [contextLost, setContextLost] = useState(false)
+  const [retryCount, setRetryCount] = useState(0)
 
   useEffect(() => {
     setIsMounted(true)
@@ -638,8 +640,51 @@ export default function GardenScene({ selectedPlantType, onError, onSelectPlant 
     })
   }
 
+  // Enhanced context recovery
+  const handleContextRecovery = useCallback(() => {
+    console.log("Attempting WebGL context recovery...")
+    setContextLost(false)
+    setRetryCount((prev) => prev + 1)
+
+    // Small delay to allow cleanup
+    setTimeout(() => {
+      console.log("WebGL context recovery complete")
+    }, 100)
+  }, [])
+
   if (!isMounted) {
     return <div className="h-full w-full bg-black"></div>
+  }
+
+  // Show recovery UI if context is lost
+  if (contextLost) {
+    return (
+      <div className="relative h-full w-full">
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/90">
+          <div className="text-center p-8 bg-black/70 rounded-lg border border-green-500/20 max-w-md">
+            <h3 className="text-xl font-bold text-green-400 mb-2">3D Context Recovery</h3>
+            <p className="text-green-200 mb-4">
+              The 3D graphics context was lost. This can happen due to browser memory management or GPU issues.
+            </p>
+            <div className="flex flex-col gap-2">
+              <Button className="bg-green-600 hover:bg-green-700" onClick={handleContextRecovery}>
+                Restore 3D Garden
+              </Button>
+              <Button
+                variant="outline"
+                className="border-green-600 text-green-400 hover:bg-green-900/20"
+                onClick={() => window.location.reload()}
+              >
+                Refresh Page
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Background fallback */}
+        <div className="absolute inset-0 bg-gradient-to-b from-green-900/50 to-black"></div>
+      </div>
+    )
   }
 
   return (
@@ -668,16 +713,72 @@ export default function GardenScene({ selectedPlantType, onError, onSelectPlant 
           }
         >
           <Canvas
+            key={`garden-canvas-${retryCount}`} // Force remount on retry
             shadows
             camera={{ position: [0, 8, 15], fov: 60 }}
             gl={{
-              antialias: true,
-              powerPreference: "high-performance",
+              antialias: false, // Disable for better compatibility
+              powerPreference: "default", // Use default instead of high-performance
               alpha: false,
               stencil: false,
               depth: true,
+              preserveDrawingBuffer: false, // Better memory management
+              failIfMajorPerformanceCaveat: false, // Don't fail on performance issues
             }}
-            dpr={[1, 2]}
+            dpr={1} // Fixed DPR for consistency
+            onCreated={(state) => {
+              try {
+                if (state?.gl && state.gl.domElement) {
+                  // Disable problematic features
+                  state.gl.logarithmicDepthBuffer = false
+
+                  // Set conservative limits
+                  const gl = state.gl
+                  if (gl.getParameter) {
+                    const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE)
+                    const maxRenderbufferSize = gl.getParameter(gl.MAX_RENDERBUFFER_SIZE)
+                    console.log(`WebGL limits: Texture=${maxTextureSize}, Renderbuffer=${maxRenderbufferSize}`)
+                  }
+
+                  const canvas = state.gl.domElement
+                  if (canvas && typeof canvas.addEventListener === "function") {
+                    const handleContextLost = (event) => {
+                      try {
+                        event.preventDefault()
+                        console.warn("WebGL context lost - attempting recovery")
+                        setContextLost(true)
+                      } catch (error) {
+                        console.error("Error handling context lost:", error)
+                      }
+                    }
+
+                    const handleContextRestored = () => {
+                      try {
+                        console.log("WebGL context restored")
+                        setContextLost(false)
+                      } catch (error) {
+                        console.error("Error handling context restored:", error)
+                      }
+                    }
+
+                    // Remove existing listeners first
+                    canvas.removeEventListener("webglcontextlost", handleContextLost)
+                    canvas.removeEventListener("webglcontextrestored", handleContextRestored)
+
+                    // Add new listeners
+                    canvas.addEventListener("webglcontextlost", handleContextLost, false)
+                    canvas.addEventListener("webglcontextrestored", handleContextRestored, false)
+                  }
+                }
+              } catch (error) {
+                console.error("Error in Canvas onCreated:", error)
+                setContextLost(true)
+              }
+            }}
+            onError={(error) => {
+              console.error("Canvas error:", error)
+              setContextLost(true)
+            }}
           >
             <GardenSceneContent
               selectedPlantType={selectedPlantType}

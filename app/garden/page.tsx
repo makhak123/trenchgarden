@@ -12,22 +12,41 @@ import { useGardenStore, type PlantType } from "@/lib/store"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 
-// Import components with no SSR
+// Enhanced dynamic imports with better error handling for production
 const LoadingScreen = dynamic(() => import("@/components/loading-screen"), {
   ssr: false,
   loading: () => (
     <div className="flex h-full w-full items-center justify-center bg-black">
-      <div className="text-green-400 text-xl">Loading...</div>
+      <div className="text-center">
+        <Leaf className="mx-auto mb-4 h-12 w-12 text-green-400 animate-pulse" />
+        <div className="text-green-400 text-xl">Loading...</div>
+      </div>
     </div>
   ),
 })
 
-// Import the 3D garden scene with no SSR
+// Enhanced 3D garden scene import with better error handling
 const GardenScene3D = dynamic(() => import("@/components/garden-scene"), {
   ssr: false,
   loading: () => (
     <div className="flex h-full w-full items-center justify-center bg-black">
-      <div className="text-green-400 text-xl">Loading 3D Garden...</div>
+      <div className="text-center">
+        <Leaf className="mx-auto mb-4 h-12 w-12 text-green-400 animate-pulse" />
+        <div className="text-green-400 text-xl">Loading 3D Garden...</div>
+      </div>
+    </div>
+  ),
+})
+
+// Fallback 2D garden scene
+const GardenScene2D = dynamic(() => import("@/components/garden-scene-simplified"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-full w-full items-center justify-center bg-black">
+      <div className="text-center">
+        <Leaf className="mx-auto mb-4 h-12 w-12 text-green-400 animate-pulse" />
+        <div className="text-green-400 text-xl">Loading 2D Garden...</div>
+      </div>
     </div>
   ),
 })
@@ -38,45 +57,92 @@ export default function GardenPage() {
   const [isMounted, setIsMounted] = useState(false)
   const [loadError, setLoadError] = useState<Error | null>(null)
   const [retryCount, setRetryCount] = useState(0)
+  const [use2D, setUse2D] = useState(false)
   const { username, coins } = useGardenStore()
   const router = useRouter()
 
-  // Handle client-side mounting
+  // Enhanced client-side mounting with better error handling
   useEffect(() => {
-    setIsMounted(true)
+    try {
+      setIsMounted(true)
 
-    // Redirect if no username
-    if (typeof window !== "undefined" && !username) {
-      router.push("/")
-      return
-    }
+      // Enhanced username check
+      if (typeof window !== "undefined" && !username) {
+        console.warn("No username found, redirecting to home")
+        router.push("/")
+        return
+      }
 
-    // Simulate loading time
-    const timer = setTimeout(() => {
+      // Enhanced loading with error handling
+      const timer = setTimeout(() => {
+        try {
+          setIsLoading(false)
+        } catch (error) {
+          console.error("Error during loading completion:", error)
+          setLoadError(error as Error)
+          setIsLoading(false)
+        }
+      }, 1500)
+
+      return () => {
+        clearTimeout(timer)
+        setIsMounted(false)
+      }
+    } catch (error) {
+      console.error("Garden page mounting error:", error)
+      setLoadError(error as Error)
       setIsLoading(false)
-    }, 1500)
-
-    return () => {
-      clearTimeout(timer)
-      setIsMounted(false)
     }
   }, [username, router])
 
-  // Handle 3D scene error
-  const handleSceneError = (error) => {
+  // Enhanced 3D scene error handler with fallback to 2D
+  const handleSceneError = (error: Error) => {
     console.error("3D Scene error:", error)
-    setLoadError(error)
+
+    // Check if it's a WebGL context error
+    if (error.message.includes("WebGL") || error.message.includes("context")) {
+      console.log("WebGL error detected, falling back to 2D mode")
+      setUse2D(true)
+      setLoadError(null)
+    } else {
+      setLoadError(error)
+    }
   }
 
-  // Retry loading the 3D scene
+  // Enhanced retry handler
   const handleRetry = () => {
-    setLoadError(null)
-    setRetryCount((prev) => prev + 1)
+    try {
+      setLoadError(null)
+      setUse2D(false) // Try 3D again
+      setRetryCount((prev) => prev + 1)
+      setIsLoading(true)
+
+      // Reset after a short delay
+      setTimeout(() => {
+        setIsLoading(false)
+      }, 1000)
+    } catch (error) {
+      console.error("Error during retry:", error)
+      setLoadError(error as Error)
+    }
   }
 
-  // Show nothing during SSR
+  // Switch to 2D mode
+  const handleSwitch2D = () => {
+    setUse2D(true)
+    setLoadError(null)
+  }
+
+  // Enhanced SSR handling
   if (!isMounted) {
-    return <div className="h-screen w-full bg-black"></div>
+    return (
+      <div className="h-screen w-full bg-black flex items-center justify-center">
+        <div className="text-center">
+          <Leaf className="mx-auto mb-4 h-12 w-12 text-green-400" />
+          <div className="text-green-400">Loading Garden...</div>
+        </div>
+      </div>
+    )
   }
 
   if (isLoading) {
@@ -85,7 +151,7 @@ export default function GardenPage() {
 
   return (
     <div className="flex h-screen flex-col bg-black">
-      {/* Header */}
+      {/* Enhanced Header */}
       <header className="flex items-center justify-between border-b border-green-900/30 bg-black/80 px-4 py-3 backdrop-blur-sm">
         <Link href="/" className="flex items-center gap-2">
           <Leaf className="h-5 w-5 text-green-400" />
@@ -99,10 +165,15 @@ export default function GardenPage() {
           <Badge variant="outline" className="border-green-600 bg-green-900/20 text-green-400">
             {username}
           </Badge>
+          {use2D && (
+            <Badge variant="outline" className="border-blue-600 bg-blue-900/20 text-blue-400">
+              2D Mode
+            </Badge>
+          )}
         </div>
       </header>
 
-      {/* Main content */}
+      {/* Enhanced Main content */}
       <div className="flex flex-1 flex-col overflow-hidden">
         <Tabs defaultValue="garden" className="flex h-full flex-col">
           <TabsList className="mx-auto mb-2 mt-2 bg-green-900/20">
@@ -125,16 +196,47 @@ export default function GardenPage() {
               <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/80 p-4">
                 <div className="max-w-md rounded-lg border border-green-500/20 bg-black/70 p-8 text-center">
                   <Leaf className="mx-auto mb-4 h-12 w-12 text-green-400" />
-                  <h3 className="mb-2 text-xl font-bold text-green-400">3D Garden Error</h3>
+                  <h3 className="mb-2 text-xl font-bold text-green-400">Garden Loading Error</h3>
                   <p className="mb-4 text-green-200">
-                    We encountered an issue loading the 3D garden. Please try refreshing the page.
+                    We encountered an issue loading your garden. This might be due to browser compatibility or WebGL
+                    issues.
                   </p>
-                  <Button className="bg-green-600 hover:bg-green-700" onClick={handleRetry}>
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Retry
-                  </Button>
+                  <div className="flex flex-col gap-2">
+                    <Button className="bg-green-600 hover:bg-green-700" onClick={handleRetry}>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Try 3D Again
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="border-blue-600 text-blue-400 hover:bg-blue-900/20"
+                      onClick={handleSwitch2D}
+                    >
+                      Use 2D Mode
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="border-green-600 text-green-400 hover:bg-green-900/20"
+                      onClick={() => window.location.reload()}
+                    >
+                      Refresh Page
+                    </Button>
+                  </div>
+                  {process.env.NODE_ENV === "development" && (
+                    <details className="mt-4 text-left">
+                      <summary className="cursor-pointer text-sm text-green-400">Error Details</summary>
+                      <pre className="mt-2 overflow-auto rounded bg-gray-900 p-2 text-xs text-red-400">
+                        {loadError.message}
+                      </pre>
+                    </details>
+                  )}
                 </div>
               </div>
+            ) : use2D ? (
+              <GardenScene2D
+                key={`garden-scene-2d-${retryCount}`}
+                selectedPlantType={selectedPlantType}
+                onSelectPlant={setSelectedPlantType}
+              />
             ) : (
               <GardenScene3D
                 key={`garden-scene-3d-${retryCount}`}

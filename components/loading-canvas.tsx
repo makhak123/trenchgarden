@@ -133,22 +133,86 @@ const GardenScene = () => {
   )
 }
 
-// Replace the export default function with this
+// Enhanced loading canvas component with better error handling
 export default function LoadingCanvas() {
   const [isMounted, setIsMounted] = useState(false)
+  const [hasError, setHasError] = useState(false)
 
   useEffect(() => {
-    setIsMounted(true)
-    return () => setIsMounted(false)
+    try {
+      setIsMounted(true)
+      return () => setIsMounted(false)
+    } catch (error) {
+      console.error("LoadingCanvas mounting error:", error)
+      setHasError(true)
+    }
   }, [])
 
-  if (!isMounted) {
+  if (!isMounted || hasError) {
     return <div className="absolute inset-0 bg-gradient-to-b from-green-900/50 to-black"></div>
   }
 
   return (
     <Suspense fallback={<div className="absolute inset-0 bg-gradient-to-b from-green-900/50 to-black"></div>}>
-      <Canvas shadows camera={{ position: [0, 5, 10], fov: 50 }}>
+      <Canvas
+        shadows
+        camera={{ position: [0, 5, 10], fov: 50 }}
+        gl={{
+          antialias: false,
+          powerPreference: "default",
+          alpha: false,
+          stencil: false,
+          depth: true,
+        }}
+        dpr={[1, 1.5]}
+        onCreated={(state) => {
+          try {
+            // Enhanced WebGL context setup for production with proper null checks
+            if (state?.gl && state.gl.domElement) {
+              state.gl.logarithmicDepthBuffer = false
+
+              // Better error handling for WebGL context with proper null checks
+              const canvas = state.gl.domElement
+
+              if (canvas && typeof canvas.addEventListener === "function") {
+                const handleContextLost = (event: Event) => {
+                  try {
+                    event.preventDefault()
+                    console.warn("WebGL context lost in loading canvas")
+                    setHasError(true)
+                  } catch (error) {
+                    console.error("Error handling context lost in loading canvas:", error)
+                  }
+                }
+
+                const handleContextRestored = () => {
+                  try {
+                    console.log("WebGL context restored in loading canvas")
+                    setHasError(false)
+                  } catch (error) {
+                    console.error("Error handling context restored in loading canvas:", error)
+                  }
+                }
+
+                // Add event listeners with error handling
+                try {
+                  canvas.addEventListener("webglcontextlost", handleContextLost, false)
+                  canvas.addEventListener("webglcontextrestored", handleContextRestored, false)
+                } catch (error) {
+                  console.warn("Could not add WebGL context event listeners in loading canvas:", error)
+                }
+              }
+            }
+          } catch (error) {
+            console.error("Error in LoadingCanvas onCreated:", error)
+            // Don't set hasError here as it might cause infinite re-renders
+          }
+        }}
+        onError={(error) => {
+          console.error("LoadingCanvas error:", error)
+          setHasError(true)
+        }}
+      >
         <GardenScene />
         <EffectComposer>
           <Bloom luminanceThreshold={0.2} luminanceSmoothing={0.9} intensity={0.8} />

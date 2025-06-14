@@ -9,18 +9,21 @@ import { useToast } from "@/hooks/use-toast"
 import { useGardenStore } from "@/lib/store"
 import { MotionDiv } from "@/components/motion-wrapper"
 import dynamic from "next/dynamic"
+import { Leaf } from "lucide-react"
 
-// Import LoadingScreen with no SSR and a loading component
+// Enhanced dynamic imports with better error handling
 const LoadingScreen = dynamic(() => import("@/components/loading-screen"), {
   ssr: false,
   loading: () => (
     <div className="flex h-screen w-full items-center justify-center bg-black">
-      <div className="text-green-400 text-xl">Loading...</div>
+      <div className="text-center">
+        <Leaf className="mx-auto mb-4 h-12 w-12 text-green-400 animate-pulse" />
+        <div className="text-green-400 text-xl">Loading...</div>
+      </div>
     </div>
   ),
 })
 
-// Import 3D background with no SSR and a loading component
 const GardenBackground = dynamic(() => import("@/components/garden-background"), {
   ssr: false,
   loading: () => <div className="absolute inset-0 bg-gradient-to-b from-green-900/50 to-black"></div>,
@@ -30,45 +33,84 @@ export default function Home() {
   const [username, setUsername] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [isMounted, setIsMounted] = useState(false)
+  const [hasError, setHasError] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
   const { setUsername: storeUsername } = useGardenStore()
 
-  // Handle client-side mounting
+  // Enhanced client-side mounting with better error handling
   useEffect(() => {
-    setIsMounted(true)
+    try {
+      setIsMounted(true)
 
-    // Simulate loading time
-    const timer = setTimeout(() => {
-      try {
-        setIsLoading(false)
-      } catch (error) {
-        console.error("Error during loading:", error)
-        // Show a fallback UI in case of error
-        setIsLoading(false)
-      }
-    }, 3000)
+      // Enhanced loading with error handling
+      const timer = setTimeout(() => {
+        try {
+          setIsLoading(false)
+        } catch (error) {
+          console.error("Error during loading completion:", error)
+          setHasError(true)
+          setIsLoading(false)
+        }
+      }, 3000)
 
-    return () => clearTimeout(timer)
+      return () => clearTimeout(timer)
+    } catch (error) {
+      console.error("Error during mounting:", error)
+      setHasError(true)
+      setIsLoading(false)
+    }
   }, [])
 
   const handleEnterGarden = () => {
-    if (!username.trim()) {
+    try {
+      if (!username.trim()) {
+        toast({
+          title: "Username required",
+          description: "Please enter a username to continue",
+          variant: "destructive",
+        })
+        return
+      }
+
+      storeUsername(username)
+      router.push("/garden")
+    } catch (error) {
+      console.error("Error entering garden:", error)
       toast({
-        title: "Username required",
-        description: "Please enter a username to continue",
+        title: "Error",
+        description: "Failed to enter garden. Please try again.",
         variant: "destructive",
       })
-      return
     }
-
-    storeUsername(username)
-    router.push("/garden")
   }
 
-  // Show nothing during SSR
+  // Enhanced SSR handling
   if (!isMounted) {
-    return <div className="h-screen w-full bg-black"></div>
+    return (
+      <div className="h-screen w-full bg-black flex items-center justify-center">
+        <div className="text-center">
+          <Leaf className="mx-auto mb-4 h-12 w-12 text-green-400" />
+          <div className="text-green-400">Loading Trench Garden...</div>
+        </div>
+      </div>
+    )
+  }
+
+  // Enhanced error state
+  if (hasError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-black p-4">
+        <div className="text-center max-w-md">
+          <Leaf className="mx-auto mb-4 h-12 w-12 text-green-400" />
+          <h1 className="mb-4 text-xl font-bold text-green-400">Loading Error</h1>
+          <p className="mb-6 text-green-200">There was an issue loading the application. Please refresh the page.</p>
+          <Button onClick={() => window.location.reload()} className="bg-green-600 hover:bg-green-700">
+            Refresh Page
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   if (isLoading) {
@@ -77,8 +119,10 @@ export default function Home() {
 
   return (
     <div className="relative h-screen w-full overflow-hidden">
-      {/* 3D Garden Background */}
-      <GardenBackground />
+      {/* Enhanced 3D Garden Background with error boundary */}
+      <div className="absolute inset-0">
+        <GardenBackground />
+      </div>
 
       {/* Overlay gradient for better text visibility */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/70" />

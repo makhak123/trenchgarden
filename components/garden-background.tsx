@@ -7,7 +7,7 @@ import { Bloom, EffectComposer } from "@react-three/postprocessing"
 import Plant3D from "@/app/components/Plant3D"
 import type { Plant } from "@/lib/store"
 
-// Garden scene for the background
+// Enhanced garden scene for the background with better error handling
 const GardenScene = () => {
   // Create a beautiful garden with various plants
   const samplePlants: Plant[] = [
@@ -92,13 +92,9 @@ const GardenScene = () => {
 
   return (
     <>
-      {/* Ambient light */}
+      {/* Enhanced lighting */}
       <ambientLight intensity={0.6} />
-
-      {/* Directional light with shadows */}
       <directionalLight position={[10, 10, 5]} intensity={1.2} castShadow shadow-mapSize={[1024, 1024]} />
-
-      {/* Hemisphere light for better color */}
       <hemisphereLight args={["#87CEEB", "#4a7c59", 0.6]} />
 
       {/* Ground plane */}
@@ -119,7 +115,7 @@ const GardenScene = () => {
         />
       ))}
 
-      {/* Slow auto-rotation */}
+      {/* Enhanced auto-rotation */}
       <OrbitControls
         enableZoom={false}
         enablePan={false}
@@ -133,23 +129,87 @@ const GardenScene = () => {
   )
 }
 
-// Add this at the end of the file, replacing the current export default
+// Enhanced garden background component with better error handling
 export default function GardenBackground() {
   const [isMounted, setIsMounted] = useState(false)
+  const [hasError, setHasError] = useState(false)
 
   useEffect(() => {
-    setIsMounted(true)
-    return () => setIsMounted(false)
+    try {
+      setIsMounted(true)
+      return () => setIsMounted(false)
+    } catch (error) {
+      console.error("GardenBackground mounting error:", error)
+      setHasError(true)
+    }
   }, [])
 
-  if (!isMounted) {
+  if (!isMounted || hasError) {
     return <div className="absolute inset-0 bg-gradient-to-b from-green-900/50 to-black"></div>
   }
 
   return (
     <div className="absolute inset-0">
       <Suspense fallback={<div className="absolute inset-0 bg-gradient-to-b from-green-900/50 to-black"></div>}>
-        <Canvas shadows camera={{ position: [0, 5, 10], fov: 50 }}>
+        <Canvas
+          shadows
+          camera={{ position: [0, 5, 10], fov: 50 }}
+          gl={{
+            antialias: false,
+            powerPreference: "default",
+            alpha: false,
+            stencil: false,
+            depth: true,
+          }}
+          dpr={[1, 1.5]}
+          onCreated={(state) => {
+            try {
+              // Enhanced WebGL context setup for production with proper null checks
+              if (state?.gl && state.gl.domElement) {
+                state.gl.logarithmicDepthBuffer = false
+
+                // Better error handling for WebGL context with proper null checks
+                const canvas = state.gl.domElement
+
+                if (canvas && typeof canvas.addEventListener === "function") {
+                  const handleContextLost = (event: Event) => {
+                    try {
+                      event.preventDefault()
+                      console.warn("WebGL context lost")
+                      setHasError(true)
+                    } catch (error) {
+                      console.error("Error handling context lost:", error)
+                    }
+                  }
+
+                  const handleContextRestored = () => {
+                    try {
+                      console.log("WebGL context restored")
+                      setHasError(false)
+                    } catch (error) {
+                      console.error("Error handling context restored:", error)
+                    }
+                  }
+
+                  // Add event listeners with error handling
+                  try {
+                    canvas.addEventListener("webglcontextlost", handleContextLost, false)
+                    canvas.addEventListener("webglcontextrestored", handleContextRestored, false)
+                  } catch (error) {
+                    console.warn("Could not add WebGL context event listeners:", error)
+                  }
+                }
+              }
+            } catch (error) {
+              console.error("Error in Canvas onCreated:", error)
+              // Don't set hasError here as it might cause infinite re-renders
+            }
+          }}
+          onError={(error) => {
+            console.error("Canvas error:", error)
+            setHasError(true)
+          }}
+        >
           <GardenScene />
           <EffectComposer>
             <Bloom luminanceThreshold={0.2} luminanceSmoothing={0.9} intensity={0.8} />

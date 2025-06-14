@@ -1,37 +1,118 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, type ReactNode } from "react"
 
-// Conditional motion imports with fallbacks
+// Enhanced motion wrapper with better production support
 let motion: any = null
 let AnimatePresence: any = null
+let isMotionLoaded = false
 
-// Try to import framer-motion, but provide fallbacks if it fails
+// Improved motion loading with better error handling
 const loadMotion = async () => {
+  if (isMotionLoaded) return true
+
   try {
+    // Use dynamic import with better error handling
     const framerMotion = await import("framer-motion")
     motion = framerMotion.motion
     AnimatePresence = framerMotion.AnimatePresence
+    isMotionLoaded = true
     return true
   } catch (error) {
     console.warn("Framer Motion failed to load, using fallbacks:", error)
-    // Fallback components that just render children without animation
+    // Enhanced fallback components
     motion = {
-      div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
-      button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
-      span: ({ children, ...props }: any) => <span {...props}>{children}</span>,
+      div: ({
+        children,
+        initial,
+        animate,
+        exit,
+        transition,
+        whileHover,
+        whileTap,
+        style,
+        className,
+        ...props
+      }: any) => (
+        <div
+          className={className}
+          style={{
+            ...style,
+            // Apply some basic CSS transitions as fallback
+            transition: "all 0.3s ease-in-out",
+          }}
+          {...props}
+        >
+          {children}
+        </div>
+      ),
+      button: ({
+        children,
+        initial,
+        animate,
+        exit,
+        transition,
+        whileHover,
+        whileTap,
+        style,
+        className,
+        ...props
+      }: any) => (
+        <button
+          className={className}
+          style={{
+            ...style,
+            transition: "all 0.2s ease-in-out",
+          }}
+          {...props}
+        >
+          {children}
+        </button>
+      ),
+      span: ({
+        children,
+        initial,
+        animate,
+        exit,
+        transition,
+        whileHover,
+        whileTap,
+        style,
+        className,
+        ...props
+      }: any) => (
+        <span
+          className={className}
+          style={{
+            ...style,
+            transition: "all 0.2s ease-in-out",
+          }}
+          {...props}
+        >
+          {children}
+        </span>
+      ),
     }
-    AnimatePresence = ({ children }: any) => children
+    AnimatePresence = ({ children }: { children: ReactNode }) => <>{children}</>
+    isMotionLoaded = true
     return false
   }
 }
 
+// Enhanced MotionDiv with better production support
 export function MotionDiv({ children, ...props }: any) {
   const [isLoaded, setIsLoaded] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
+    setIsMounted(true)
     loadMotion().then(setIsLoaded)
   }, [])
+
+  // Don't render anything during SSR
+  if (!isMounted) {
+    return <div {...props}>{children}</div>
+  }
 
   if (!motion) {
     return <div {...props}>{children}</div>
@@ -43,10 +124,16 @@ export function MotionDiv({ children, ...props }: any) {
 
 export function MotionButton({ children, ...props }: any) {
   const [isLoaded, setIsLoaded] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
+    setIsMounted(true)
     loadMotion().then(setIsLoaded)
   }, [])
+
+  if (!isMounted) {
+    return <button {...props}>{children}</button>
+  }
 
   if (!motion) {
     return <button {...props}>{children}</button>
@@ -58,10 +145,16 @@ export function MotionButton({ children, ...props }: any) {
 
 export function MotionSpan({ children, ...props }: any) {
   const [isLoaded, setIsLoaded] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
+    setIsMounted(true)
     loadMotion().then(setIsLoaded)
   }, [])
+
+  if (!isMounted) {
+    return <span {...props}>{children}</span>
+  }
 
   if (!motion) {
     return <span {...props}>{children}</span>
@@ -71,15 +164,21 @@ export function MotionSpan({ children, ...props }: any) {
   return <MotionComponent {...props}>{children}</MotionComponent>
 }
 
-export function SafeAnimatePresence({ children }: any) {
+export function SafeAnimatePresence({ children }: { children: ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
+    setIsMounted(true)
     loadMotion().then(setIsLoaded)
   }, [])
 
+  if (!isMounted) {
+    return <>{children}</>
+  }
+
   if (!AnimatePresence) {
-    return children
+    return <>{children}</>
   }
 
   return <AnimatePresence>{children}</AnimatePresence>
